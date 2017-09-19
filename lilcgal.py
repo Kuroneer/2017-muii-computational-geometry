@@ -137,26 +137,36 @@ def lineIntersection(Line0, Line1):
 
     # ResX, ResY
 
-    # Line0
-    # B0 = Line0[1][0] - Line0[0][0]
-    # B1 = Line0[1][1] - Line0[0][1]
-    # C0 = ResX - Line0[0][0]
-    # C1 = ResY - Line0[0][1]
-    # B0 * C1 = C0 * B1
-    # (Line0[1][0] - Line0[0][0]) * (ResY - Line0[0][1]) = (Line0[1][1] - Line0[0][1]) * (ResX - Line0[0][0])
+    # Area from Line0
+    A0x = Line0[0][0]
+    A0y = Line0[0][1]
+    A1x = Line0[1][0]
+    A1y = Line0[1][1]
+    ax = A1x - A0x
+    ay = A1y - A0y
+    # cx = ResX - A0x
+    # cy = ResY - A0y
+    # ax * cy = cx * ay
+    # Doing the same with Line1 and combining both to extract ResX:
 
-    # Line1
-    # D0 = Line1[1][0] - Line1[0][0]
-    # D1 = Line1[1][1] - Line1[0][1]
-    # E0 = ResX - Line1[0][0]
-    # E1 = ResY - Line1[0][1]
-    # D0 * E1 = E0 * D1
-    # (Line1[1][0] - Line1[0][0]) * (ResY - Line1[0][1]) = (Line1[1][1] - Line1[0][1]) * (ResX - Line1[0][0])
+    B0x = Line1[0][0]
+    B0y = Line1[0][1]
+    B1x = Line1[1][0]
+    B1y = Line1[1][1]
+    bx = B1x - B0x
+    by = B1y - B0y
 
-    # From Line0:
-    # (Line0[1][0] - Line0[0][0]) * (ResY - Line0[0][1]) = (Line0[1][1] - Line0[0][1]) * ResX - (Line0[1][1] - Line0[0][1]) * Line0[0][0])
-    # ((Line0[1][0] - Line0[0][0]) * (ResY - Line0[0][1]) + (Line0[1][1] - Line0[0][1]) * Line0[0][0])) / (Line0[1][1] - Line0[0][1]) = ResX
-    # Into Line1:
+    D = ax * by - bx * ay
+    if (D == 0): # Both lines have the same slope
+        return None
 
-    return
+    # ResX = (ax * bx * A0y - ax * bx * B0y - ay * bx * A0x + ax * by * B0x) / D
+    ResX = (ax * (bx * (A0y - B0y) + by * B0x) - ay * bx * A0x) / D
+
+    if (bx == 0):
+        ResY = (ay / ax) * (ResX - A0x) + A0y
+    else:
+        ResY = (by / bx) * (ResX - B0x) + B0y
+
+    return [ResX, ResY]
 

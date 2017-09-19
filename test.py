@@ -77,6 +77,12 @@ def main():
     print(segmentIntersectionTest([Point4, Point5], [Point5, Point6])) # True (parallel + same end)
     print(segmentIntersectionTest([Point4, Point5], [Point5, Point0])) # True (same end)
 
+    print()
+    print(lineIntersection([Point0, Point3], [Point1, Point7])) # [.5,.5]
+    print(lineIntersection([Point0, Point1], [Point1, Point7])) # [ 0, 1]
+    print(lineIntersection([Point0, Point1], [Point3, Point7])) # None
+    print(lineIntersection([Point0, Point1], [Point0, Point1])) # None
+    print(lineIntersection([Point0, Point1], [Point1, Point0])) # None
 
 if __name__ == "__main__":
     main()
