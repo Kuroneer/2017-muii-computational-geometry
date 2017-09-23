@@ -2,7 +2,7 @@
 
 import timeit
 def time(functionString):
-    res = timeit.timeit('lilcgal.'+functionString, setup='import lilcgal', number=50000)
+    res = timeit.timeit('lilcgal_basic.'+functionString, setup='import lilcgal_basic', number=50000)
     print("> {} took {}".format(functionString, res))
 
 time('dist2_dim2([0,0],[1,1])')

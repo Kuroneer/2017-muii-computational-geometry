@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from lilcgal import *
+from lilcgal_basic import *
 from random import random
 
 def main():
