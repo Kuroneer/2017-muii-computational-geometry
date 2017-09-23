@@ -93,9 +93,7 @@ def inSegment(PointO, Segment):
     # are between each segment end point
     PointA = Segment[0]
     PointB = Segment[1]
-    return (sarea(PointO, PointA, PointB) == 0) \
-            and ((PointA[0] <= PointO[0] <= PointB[0]) or (PointB[0] <= PointO[0] <= PointA[0])) \
-            and ((PointA[1] <= PointO[1] <= PointB[1]) or (PointB[1] <= PointO[1] <= PointA[1]))
+    return (sarea(PointO, PointA, PointB) == 0) and pointCoordinatesBetween(PointO, Segment)
 
 def inConvexPolygon(PointO, ConvexPolygon):
     # A point is in a convex polygon if while we follow the polygon, it's always on
@@ -116,6 +114,12 @@ def inConvexPolygon(PointO, ConvexPolygon):
 def inTriangle(Point0, Triangle):
     return inConvexPolygon(Point0, Triangle)
 
+def pointCoordinatesBetween(PointO, Segment):
+    PointA = Segment[0]
+    PointB = Segment[1]
+    return ((PointA[0] <= PointO[0] <= PointB[0]) or (PointB[0] <= PointO[0] <= PointA[0])) \
+            and ((PointA[1] <= PointO[1] <= PointB[1]) or (PointB[1] <= PointO[1] <= PointA[1]))
+
 def segmentIntersectionTest(Segment0, Segment1):
     # Two segments cross each other if both ends of one are at different sides
     # of the other
@@ -127,14 +131,11 @@ def segmentIntersectionTest(Segment0, Segment1):
     if A1 or A2 or A3 or A4:
         return (A1 * A2 <= 0) and (A3 * A4 <= 0)
 
-    # Segments are in the same line, check max distance between ends and length
-    # of segments
-    D1 = dist2(Segment0[0], Segment1[0]);
-    D2 = dist2(Segment0[0], Segment1[1]);
-    D3 = dist2(Segment0[1], Segment1[0]);
-    D4 = dist2(Segment0[1], Segment1[1]);
-    maxDist = max(D1, D2, D3, D4)
-    return maxDist <= ((dist(Segment0[0], Segment0[1]) + dist(Segment1[0], Segment1[1]))**2)
+    # Segments are in the same line
+    return pointCoordinatesBetween(Segment0[0], Segment1) \
+            or pointCoordinatesBetween(Segment0[1], Segment1) \
+            or pointCoordinatesBetween(Segment1[0], Segment0) \
+            or pointCoordinatesBetween(Segment1[1], Segment0)
 
 
 def lineIntersection(Line0, Line1):
