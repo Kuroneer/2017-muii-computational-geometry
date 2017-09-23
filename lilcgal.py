@@ -117,19 +117,25 @@ def inTriangle(Point0, Triangle):
     return inConvexPolygon(Point0, Triangle)
 
 def segmentIntersectionTest(Segment0, Segment1):
-    # Two segments croos each other if both ends of one are at different sides
+    # Two segments cross each other if both ends of one are at different sides
     # of the other
-    return ((sarea(Segment0[0], Segment0[1], Segment1[0]) \
-            * sarea(Segment0[0], Segment0[1], Segment1[1])) <= 0) \
-            and ((sarea(Segment1[0], Segment1[1], Segment0[0]) \
-            * sarea(Segment1[0], Segment1[1], Segment0[1])) <= 0)
+    A1 = sarea(Segment0[0], Segment0[1], Segment1[0])
+    A2 = sarea(Segment0[0], Segment0[1], Segment1[1])
+    A3 = sarea(Segment1[0], Segment1[1], Segment0[0])
+    A4 = sarea(Segment1[0], Segment1[1], Segment0[1])
 
-def segmentIntersectionTest_orientations(Segment0, Segment1):
-    # Same as above but with orientations
-    return ((orientation(Segment0[0], Segment0[1], Segment1[0]) \
-            * orientation(Segment0[0], Segment0[1], Segment1[1])) <= 0) \
-            and ((orientation(Segment1[0], Segment1[1], Segment0[0]) \
-            * orientation(Segment1[0], Segment1[1], Segment0[1])) <= 0)
+    if A1 or A2 or A3 or A4:
+        return (A1 * A2 <= 0) and (A3 * A4 <= 0)
+
+    # Segments are in the same line, check max distance between ends and length
+    # of segments
+    D1 = dist2(Segment0[0], Segment1[0]);
+    D2 = dist2(Segment0[0], Segment1[1]);
+    D3 = dist2(Segment0[1], Segment1[0]);
+    D4 = dist2(Segment0[1], Segment1[1]);
+    maxDist = max(D1, D2, D3, D4)
+    return maxDist <= ((dist(Segment0[0], Segment0[1]) + dist(Segment1[0], Segment1[1]))**2)
+
 
 def lineIntersection(Line0, Line1):
     # The intersection point solves both line equatons, and also, the sarea of
@@ -169,4 +175,82 @@ def lineIntersection(Line0, Line1):
         ResY = (by / bx) * (ResX - B0x) + B0y
 
     return [ResX, ResY]
+
+def diff(Point0, Point1):
+    return [Point1[0] - Point0[0], Point1[1] - Point0[1]]
+def sumV(Point0, Point1):
+    return [Point1[0] + Point0[0], Point1[1] + Point0[1]]
+def perpendicular(Vector):
+    return [Vector[1], -Vector[0]]
+def mediatriz(Segment):
+    Point0 = Segment[0]
+    Point1 = Segment[1]
+    Vector = diff(Point0, Point1)
+    Perpend = perpendicular(Vector)
+    MidPoint = midPoint(Point0, Point1)
+    return [MidPoint, sumV(MidPoint, Perpend)]
+
+def circumcenter(Point0, Point1, Point2):
+    M0 = mediatriz([Point2, Point0])
+    M1 = mediatriz([Point2, Point1])
+    return lineIntersection(M0, M1)
+
+def inCircle_dist2(Point0, Point1, Point2, PointO):
+    Circumcenter = circumcenter(Point0, Point1, Point2)
+    if Circumcenter == None:
+        return None
+    return dist2(Point0, Circumcenter) - dist2(PointO, Circumcenter)
+
+def inCircle_det(Point0, Point1, Point2, PointO):
+    SArea = sarea(Point0, Point1, Point2)
+    if not SArea:
+        return None
+    # |  1  1  1  1 |
+    # | x0 x1 x2 xO |
+    # | y0 y1 y2 yO | =
+    # | z0 z1 z2 zO |
+    #
+    # With Z = x^2 + y^2
+    #
+    # |  1     0     0     0 |
+    # | x0 x1-x0 x2-x0 xO-x0 |
+    # | y0 y1-y0 y2-y0 yO-y0 | =
+    # | z0 z1-z0 z2-z0 zO-z0 |
+    #
+    # | x1-x0 x2-x0 xO-x0 |
+    # | y1-y0 y2-y0 yO-y0 |
+    # | z1-z0 z2-z0 zO-z0 |
+
+    def getZ(Point):
+        return Point[0] * Point[0] + Point[1] * Point[1]
+
+    x0 = Point0[0]
+    y0 = Point0[1]
+    z0 = getZ(Point0)
+    x1 = Point1[0]
+    y1 = Point1[1]
+    z1 = getZ(Point1)
+    x2 = Point2[0]
+    y2 = Point2[1]
+    z2 = getZ(Point2)
+    xO = PointO[0]
+    yO = PointO[1]
+    zO = getZ(PointO)
+
+    e11 = x1-x0
+    e12 = x2-x0
+    e13 = xO-x0
+    e21 = y1-y0
+    e22 = y2-y0
+    e23 = yO-y0
+    e31 = z1-z0
+    e32 = z2-z0
+    e33 = zO-z0
+
+    det = e11 * e22 * e33 + e12 * e23 * e31 + e13 * e21 * e32 - e13 * e22 * e31 - e12 * e21 * e33 - e11 * e23 * e32
+
+    return (SArea * det)
+
+def inCircle(Point0, Point1, Point2, PointO):
+    return inCircle_det(Point0, Point1, Point2, PointO)
 

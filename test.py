@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from lilcgal import *
+from random import random
 
 def main():
 
@@ -76,6 +77,10 @@ def main():
     print(segmentIntersectionTest([Point5, Point5], [Point4, Point6])) # True (single point in segment + segment)
     print(segmentIntersectionTest([Point4, Point5], [Point5, Point6])) # True (parallel + same end)
     print(segmentIntersectionTest([Point4, Point5], [Point5, Point0])) # True (same end)
+    print(segmentIntersectionTest([[0,1],[0,2]],[[0,3],[0,4]])) # False
+    print(segmentIntersectionTest([[0,1],[0,3]],[[0,2],[0,4]])) # True
+    print(segmentIntersectionTest([[0,1],[0,4]],[[0,3],[0,2]])) # True
+    print(segmentIntersectionTest([[0,1],[0,1]],[[0,1],[0,2]])) # True
 
     print()
     print(lineIntersection([Point0, Point3], [Point1, Point7])) # [.5,.5]
@@ -83,6 +88,39 @@ def main():
     print(lineIntersection([Point0, Point1], [Point3, Point7])) # None
     print(lineIntersection([Point0, Point1], [Point0, Point1])) # None
     print(lineIntersection([Point0, Point1], [Point1, Point0])) # None
+
+    print()
+    print(circumcenter([1,0], [0,1], [0,0])) # [.5,.5]
+    print(circumcenter([1,0], [0,1], [1,0])) # None
+
+    print()
+    print(inCircle([1,0], [0,1], [0,0], [1,1])) # 0
+    print(inCircle([1,0], [0,1], [0,0], [0,0])) # 0
+    print(inCircle([1,0], [0,1], [0,0], [-1,-1])) # < 0
+    print(inCircle([1,0], [0,1], [0,0], [.5,.5])) # > 0
+    print()
+    print("Test:")
+    countIn = 0;
+    countOut = 0;
+    border = 0;
+    for i in range(0,10000):
+        A = [random(), random()]
+        B = [random(), random()]
+        C = [random(), random()]
+        D = [random(), random()]
+        R1 = inCircle_det(A,B,C,D)
+        R2 = inCircle_dist2(A,B,C,D)
+        if (R1 or R2) and (R1 * R2 <= 0):
+            print("error: ", i, A, B, C, D, R1, R2)
+            break
+        if (R1 > 0):
+            countIn+=1;
+        elif (R1 < 0):
+            countOut+=1;
+        else:
+            border+=1;
+    print("in", countIn, "out", countOut, "border", border)
+
 
 if __name__ == "__main__":
     main()
