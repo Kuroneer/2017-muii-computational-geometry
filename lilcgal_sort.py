@@ -67,5 +67,8 @@ def sort_vectorDir_matrixTurn(L, Vector):
     return list(map(lambda DotProduct: DotProduct[2], L_sorted))
 
 def sort_vectorDir(L, V):
-    return sort_vectorDir_dot_tuple(L, V)
+    if len(L) < 20000:
+        return sort_vectorDir_dot_tuple(L, V)
+    else:
+        return sort_vectorDir_dot_customfun(L, V)
 
