@@ -168,12 +168,12 @@ def lineIntersection(Line0, Line1):
         return None
 
     # ResX = (ax * bx * A0y - ax * bx * B0y - ay * bx * A0x + ax * by * B0x) / D
-    ResX = (ax * (bx * (A0y - B0y) + by * B0x) - ay * bx * A0x) / D
+    ResX = (ax * (bx * (A0y - B0y) + by * B0x) - ay * bx * A0x) / float(D)
 
     if (bx == 0):
-        ResY = (ay / ax) * (ResX - A0x) + A0y
+        ResY = (ay / float(ax)) * (ResX - A0x) + A0y
     else:
-        ResY = (by / bx) * (ResX - B0x) + B0y
+        ResY = (by / float(bx)) * (ResX - B0x) + B0y
 
     return [ResX, ResY]
 

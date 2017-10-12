@@ -2,7 +2,7 @@
 from lilcgal_sort import *
 import random
 from itertools import tee, izip
-
+from math import atan2
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
@@ -13,6 +13,12 @@ def pairwise(iterable):
 def remove_duplicated_points(Points):
     return list(set(Points))
 
+def createPolygonFromSortedPoints(Points, polygons_as_segments = False):
+    if polygons_as_segments:
+        return [[X, Y] for X,Y in pairwise(Points) if X != Y]+[[Points[-1],Points[0]]]
+    else:
+        return Points
+
 def sort_angleFromPoint(L, Point):
     X = Point[0]
     Y = Point[1]
@@ -20,14 +26,9 @@ def sort_angleFromPoint(L, Point):
     L_wAngle = list(map(lambda Point: (atan2(Point[1] - Y, Point[0] - X) % (2*pi), (Point[1]-Y)**2 + (Point[0]-X)**2, Point), L))
     return list(map(lambda AngleTuple: AngleTuple[2], sorted(L_wAngle)))
 
-def createPolygonFromSortedPoints(Points):
-    print(Points)
-    return [[X, Y] for X,Y in pairwise(Points) if X != Y]+[[Points[-1],Points[0]]]
-
 def build_polygon_rotsort(Points, Vertex = None):
     if Vertex == None:
         Vertex = midPoint(Points[0], midPoint(Points[1], Points[2]))
-    # print("Building around {}".format(Vertex))
     Points = sort_angleFromPoint(Points, Vertex)
     return createPolygonFromSortedPoints(Points)
 
@@ -58,5 +59,58 @@ def build_polygon_direction(Points, Vector):
 
 
 #     return
+
+def clipping_line(Polygon, Line):
+    if len(Polygon) == 0:
+        return []
+
+    AddedLast = Polygon[0] != Polygon[-1]
+    if AddedLast:
+        Polygon.append(Polygon[0])
+
+    Clipping = []
+    A = Line[0]
+    B = Line[1]
+    PreviousPoint = None
+    PreviousSign = None
+
+    for Point in Polygon:
+        # print("Checking point {}".format(Point))
+        SArea = sarea(A, B, Point)
+
+        if PreviousPoint != None:
+            if SArea * PreviousSign < 0:
+                Intersection = lineIntersection(Line, [PreviousPoint, Point])
+                # print("Added intersection from {} and {}: {} (PreviousSign is {}".format(PreviousPoint, Point, Intersection, PreviousSign))
+                Clipping.append(Intersection)
+            if SArea >= 0:
+                # print("Added point {}".format(Point))
+                Clipping.append(Point)
+
+        PreviousPoint = Point
+        PreviousSign = SArea
+
+    if AddedLast:
+        Polygon.pop(-1)
+
+    return Clipping
+
+def clipping_polygon(PolygonBase, PolygonClipper):
+    PolygonCopy = list(PolygonBase)
+
+    AddedLast = PolygonClipper[0] != PolygonClipper[-1]
+    if AddedLast:
+        PolygonClipper.append(PolygonClipper[0])
+
+    for X,Y in pairwise(PolygonClipper):
+        PolygonCopy = clipping_line(PolygonCopy, [Y,X])
+
+    if AddedLast:
+        PolygonClipper.pop(-1)
+
+    return PolygonCopy
+
+def core(Polygon):
+    return clipping_polygon(Polygon, Polygon)
 
 
