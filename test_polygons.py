@@ -30,6 +30,12 @@ def main():
     G += point(Core, color = 'cyan', size = 10)
     G += polygon(Core, color = 'cyan')
 
+    Hull = convex_hull(Polygon)
+    G += line(Hull+[Hull[0]], color = 'purple')
+
+    Hull2 = slow_convex_hull(Polygon)
+    G += line(Hull2+[Hull2[0]], color = 'pink')
+
     save(G,'/tmp/dom.png',aspect_ratio=True)
     os.system('feh /tmp/dom.png')
 

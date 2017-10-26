@@ -114,3 +114,56 @@ def core(Polygon):
     return clipping_polygon(Polygon, Polygon)
 
 
+# Hull:
+
+def modIncrement(Value, Modulus, Increment = 1):
+    return (Value + Increment) % Modulus
+
+def convex_hull(Polygon): # Polygon must be monotonic or radial
+    Hull = []
+
+    StartIndex = Polygon.index(min(Polygon, key = lambda P: P[1]))
+    Hull.append(Polygon[StartIndex])
+
+    CurrentIndex = modIncrement(StartIndex, len(Polygon))
+    while True:
+        Current = Polygon[CurrentIndex]
+
+        if len(Hull) >= 2 and sarea(Hull[-2], Hull[-1], Current) > 0:
+            Hull.pop()
+        else:
+            if CurrentIndex == StartIndex:
+                break
+            Hull.append(Current)
+            CurrentIndex = modIncrement(CurrentIndex, len(Polygon))
+
+    return Hull
+
+def slow_convex_hull(PolygonBase):
+    Polygon = list(PolygonBase)
+    Hull = []
+
+    Start = min(Polygon, key = lambda P: P[1])
+    Hull.append(Start)
+    Angle = 0
+
+    while True:
+        Vertex = Hull[-1]
+        NextValue = None
+
+        for Point in Polygon:
+            PointValue = ((atan2(Point[1] - Vertex[1], Point[0] - Vertex[0]) - Angle) % (2*pi), (Point[1]-Vertex[1])**2 + (Point[0]-Vertex[0])**2, Point)
+            if Point != Vertex and (NextValue == None or PointValue < NextValue):
+                NextValue = PointValue
+
+        Angle = NextValue[0]
+        Next = NextValue[2]
+
+        if Next == Start:
+            break
+
+        Hull.append(Next);
+
+    return Hull
+
+
