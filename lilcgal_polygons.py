@@ -75,16 +75,13 @@ def clipping_line(Polygon, Line):
     PreviousSign = None
 
     for Point in Polygon:
-        # print("Checking point {}".format(Point))
         SArea = sarea(A, B, Point)
 
         if PreviousPoint != None:
             if SArea * PreviousSign < 0:
                 Intersection = lineIntersection(Line, [PreviousPoint, Point])
-                # print("Added intersection from {} and {}: {} (PreviousSign is {}".format(PreviousPoint, Point, Intersection, PreviousSign))
                 Clipping.append(Intersection)
             if SArea >= 0:
-                # print("Added point {}".format(Point))
                 Clipping.append(Point)
 
         PreviousPoint = Point
@@ -119,7 +116,7 @@ def core(Polygon):
 def modIncrement(Value, Modulus, Increment = 1):
     return (Value + Increment) % Modulus
 
-def convex_hull(Polygon): # Polygon must be monotonic or radial
+def convex_hull(Polygon): # Polygon must be monotonic or radial (Graham convex hull) (build_polygon_rotsort, build_polygon_direction)
     Hull = []
 
     StartIndex = Polygon.index(min(Polygon, key = lambda P: P[1]))
@@ -131,16 +128,15 @@ def convex_hull(Polygon): # Polygon must be monotonic or radial
 
         if len(Hull) >= 2 and sarea(Hull[-2], Hull[-1], Current) > 0:
             Hull.pop()
+        elif CurrentIndex == StartIndex:
+            break
         else:
-            if CurrentIndex == StartIndex:
-                break
             Hull.append(Current)
             CurrentIndex = modIncrement(CurrentIndex, len(Polygon))
 
     return Hull
 
-def slow_convex_hull(PolygonBase):
-    Polygon = list(PolygonBase)
+def slow_convex_hull(Polygon):
     Hull = []
 
     Start = min(Polygon, key = lambda P: P[1])
@@ -156,7 +152,7 @@ def slow_convex_hull(PolygonBase):
             if Point != Vertex and (NextValue == None or PointValue < NextValue):
                 NextValue = PointValue
 
-        Angle = NextValue[0]
+        Angle = (Angle + NextValue[0]) % (2*pi)
         Next = NextValue[2]
 
         if Next == Start:
@@ -166,4 +162,40 @@ def slow_convex_hull(PolygonBase):
 
     return Hull
 
+def ikea(Polygon):
+    #TODO
+    return
+
+# Triangulation
+
+def graham_triangulation(Points):
+    Start= min(Points, key = lambda P: P[1])
+    Polygon = build_polygon_rotsort(Points, Start)
+
+    Hull = [Start]
+    Triangles = []
+
+    StartIndex = 0
+    CurrentIndex = 1
+    MaxReachedIndex = 1
+    while True:
+        Current = Polygon[CurrentIndex % len(Polygon)]
+
+        if len(Hull) < 2:
+            Hull.append(Current)
+        if sarea(Hull[-2], Hull[-1], Current) > 0:
+            Triangles.append([Hull[-2], Hull[-1], Current])
+            Hull.pop()
+            CurrentIndex = CurrentIndex - 1
+        else:
+            if CurrentIndex == len(Polygon):
+                break
+            Hull.append(Current)
+            if CurrentIndex > MaxReachedIndex:
+                MaxReachedIndex = CurrentIndex
+                Triangles.append([Start, Polygon[CurrentIndex-1], Polygon[CurrentIndex]])
+
+        CurrentIndex = CurrentIndex + 1
+
+    return (Hull, Triangles, Polygon)
 
