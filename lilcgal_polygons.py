@@ -175,27 +175,59 @@ def graham_triangulation(Points):
     Hull = [Start]
     Triangles = []
 
+    #######################
+    # Triangle neighbours
+    TrianglesNeighIn = []
+    TrianglesNeighOut = []
+    FreeOutTriangleRow = None
+    TriangleID = 0
+    #######################
+
     StartIndex = 0
     CurrentIndex = 1
     MaxReachedIndex = 1
     while True:
         Current = Polygon[CurrentIndex % len(Polygon)]
 
-        if len(Hull) < 2:
-            Hull.append(Current)
-        if sarea(Hull[-2], Hull[-1], Current) > 0:
-            Triangles.append([Hull[-2], Hull[-1], Current])
+        if len(Hull) >= 2 and sarea(Hull[-2], Hull[-1], Current) > 0:
+            Triangle = [Hull[-2], Hull[-1], Current]
+            Triangles.append(Triangle)
             Hull.pop()
             CurrentIndex = CurrentIndex - 1
+
+            #######################
+            # Triangle neighbours
+            # Look for existing 1-2 neighbours (If only 1, place it in
+            # 'FreeOutTriangleRow'
+            #TODO
+            #######################
+        elif CurrentIndex == len(Polygon):
+            break
         else:
-            if CurrentIndex == len(Polygon):
-                break
             Hull.append(Current)
-            if CurrentIndex > MaxReachedIndex:
+            if CurrentIndex > MaxReachedIndex: # New triangle
                 MaxReachedIndex = CurrentIndex
-                Triangles.append([Start, Polygon[CurrentIndex-1], Polygon[CurrentIndex]])
+                Triangle = [Start, Polygon[CurrentIndex-1], Polygon[CurrentIndex]]
+                Triangles.append(Triangle)
+
+                #######################
+                # Triangle neighbours #
+                TriangleNeighbours = []
+                if len(TrianglesNeighIn) > 0: # Last triangle from the ones inside the Polugon
+                    PreviousTriangleRow = TrianglesNeighIn[-1]
+                    TriangleNeighbours.append(PreviousTriangleRow[0]) # Add id of previous "in" triangle to current neighbours
+                    PreviousTriangleRow[2].append(TriangleID) # Add current id to neighbours of the previous "in" triangle
+
+                if FreeOutTriangleRow != None: # The triangle from outside the polygon that had only 1 negihbour
+                    TriangleNeighbours.append(FreeOutTriangleRow[0]) # Add id of free "out" triangle to current neighbours
+                    FreeOutTriangleRow[2].append(TriangleID) # Add current id to neighbours of the free "out" triangle
+                    FreeOutTriangleRow = None
+
+                TrianglesNeighIn.append((TriangleID, Triangle, TriangleNeighbours))
+                TriangleID = TriangleID+1
+                #######################
 
         CurrentIndex = CurrentIndex + 1
 
-    return (Hull, Triangles, Polygon)
+    return (Hull, Triangles, Polygon, sorted(TrianglesNeighIn + TrianglesNeighOut))
 
