@@ -10,9 +10,6 @@ def pairwise(iterable):
     next(b, None)
     return izip(a, b)
 
-def remove_duplicated_points(Points):
-    return list(set(Points))
-
 def createPolygonFromSortedPoints(Points, polygons_as_segments = False):
     if polygons_as_segments:
         return [[X, Y] for X,Y in pairwise(Points) if X != Y]+[[Points[-1],Points[0]]]
@@ -189,6 +186,10 @@ def graham_triangulation(Points):
     MaxReachedIndex = 1
     while True:
         Current = Polygon[CurrentIndex]
+
+        if Current == Polygon[CurrentIndex-1]: # Ignore duplicated points
+            CurrentIndex += 1
+            continue
 
         if CurrentIndex > MaxReachedIndex and Current != Start: # New triangle, avoid last vertex (duplicated start)
             MaxReachedIndex = CurrentIndex

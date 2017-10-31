@@ -19,7 +19,7 @@ def baricenter(Point0, Point1, Point2):
     else:
         return Point2
 
-num =  25
+num = 25
 def main():
     L = []
     for i in xrange(0,num):
