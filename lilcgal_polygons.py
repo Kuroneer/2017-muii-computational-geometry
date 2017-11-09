@@ -172,6 +172,7 @@ def graham_triangulation(Points):
 
     Hull = [Start]
     Triangles = []
+    PolygonWithoutDuplicates = [Start]
 
     #######################
     # Triangle neighbours
@@ -183,32 +184,35 @@ def graham_triangulation(Points):
 
     StartIndex = 0
     CurrentIndex = 1
-    MaxReachedIndex = 1
+    MaxReachedIndex = 0
     while True:
         Current = Polygon[CurrentIndex]
 
-        if Current == Polygon[CurrentIndex-1]: # Ignore duplicated points
+        if Current == Polygon[CurrentIndex-1] and CurrentIndex < (len(Polygon) -1): # Ignore duplicated points aside from last start
             CurrentIndex += 1
             continue
 
-        if CurrentIndex > MaxReachedIndex and Current != Start: # New triangle, avoid last vertex (duplicated start)
+        if CurrentIndex > MaxReachedIndex and CurrentIndex < (len(Polygon) -1): # New triangle, avoid last vertex (duplicated start)
             MaxReachedIndex = CurrentIndex
-            Triangle = [Start, Polygon[CurrentIndex-1], Polygon[CurrentIndex]]
-            Triangles.append(Triangle)
+            PolygonWithoutDuplicates.append(Current)
 
-            #######################
-            # Triangle neighbours #
-            TriangleNeighbours = []
-            if len(TrianglesNeighIn) > 0: # Last triangle from the ones inside the Polugon
-                PreviousTriangleRow = TrianglesNeighIn[-1]
-                TriangleNeighbours.append(PreviousTriangleRow[0]) # Add id of previous "in" triangle to current neighbours
-                PreviousTriangleRow[2].append(TriangleID) # Add current id to neighbours of the previous "in" triangle
+            if len(PolygonWithoutDuplicates) > 2:
+                Triangle = [Start, PolygonWithoutDuplicates[-2], PolygonWithoutDuplicates[-1]]
+                Triangles.append(Triangle)
 
-            TriangleRow = (TriangleID, Triangle, TriangleNeighbours)
-            ExternalTriangleStack.append(TriangleRow)
-            TrianglesNeighIn.append(TriangleRow)
-            TriangleID = TriangleID+1
-            #######################
+                #######################
+                # Triangle neighbours #
+                TriangleNeighbours = []
+                if len(TrianglesNeighIn) > 0: # Last triangle from the ones inside the Polugon
+                    PreviousTriangleRow = TrianglesNeighIn[-1]
+                    TriangleNeighbours.append(PreviousTriangleRow[0]) # Add id of previous "in" triangle to current neighbours
+                    PreviousTriangleRow[2].append(TriangleID) # Add current id to neighbours of the previous "in" triangle
+
+                TriangleRow = (TriangleID, Triangle, TriangleNeighbours)
+                ExternalTriangleStack.append(TriangleRow)
+                TrianglesNeighIn.append(TriangleRow)
+                TriangleID = TriangleID+1
+                #######################
 
         if len(Hull) >= 2 and sarea(Hull[-2], Hull[-1], Current) > 0:
             Triangle = [Hull[-2], Hull[-1], Current]
@@ -240,6 +244,130 @@ def graham_triangulation(Points):
 
         CurrentIndex += 1
 
-    Polygon.pop() # Remove duplicate start
-    return (Hull, Triangles, Polygon, sorted(TrianglesNeighIn + TrianglesNeighOut))
+    Polygon.pop() # Remove duplicated start
+    return (Hull, Triangles, PolygonWithoutDuplicates, sorted(TrianglesNeighIn + TrianglesNeighOut))
+
+def graham_triangulation_dcel(PointsCoordinates):
+    #######################
+    # Create polygon
+    StartPointCoordinates = min(PointsCoordinates, key = lambda P: P[1])
+    Polygon = build_polygon_rotsort(PointsCoordinates, StartPointCoordinates)
+    #######################
+
+
+    #######################
+    # Create return structures
+    Points = [] # Point = (id, coord, edge id list that start from this point)
+    Hull = [] # List of Point Ids
+    Edges = [] # (id, start point id, end point id, mirror edge id, next edge id, previous edge id, face id that includes it)
+    Faces = [] # (id, list of edge ids, list of point ids)
+    #######################
+
+
+    #######################
+    # Remove duplicates in polygon
+    StartPointIndex = 0
+    StartPoint = (StartPointIndex, StartPointCoordinates, [])
+    Points.append(StartPoint)
+
+    for PointCoordinates in Polygon:
+        if PointCoordinates != Points[-1][1]:
+            Points.append((len(Points), PointCoordinates, []))
+
+    PolygonSize = len(Points)
+    if PolygonSize < 3:
+        return None
+
+    Points.append(StartPoint) # Easier iteration
+    #######################
+
+    def addEdges(PointIdList, MirrorEdgesIds, PolygonId):
+        EdgeBaseId = len(Edges)
+        LocalEdgesIds = []
+        for PointIdIndex in xrange(0, len(PointIdList)):
+            StartPointId = PointIdList[PointIdIndex-1]
+            EndPointId = PointIdList[PointIdIndex]
+            EdgeId = EdgeBaseId + PointIdIndex
+
+            # Previous and Next edge ids are known even if they do not exist yet
+            PreviousEdgeId = EdgeId -1
+            if PreviousEdgeId < EdgeBaseId:
+                PreviousEdgeId += len(PointIdList)
+            NextEdgeId = EdgeId +1
+            if NextEdgeId > EdgeBaseId + len(PointIdList)-1:
+                NextEdgeId -= len(PointIdList)
+
+            # This could be done searching by edges starting on EndPointId,
+            # instead of managing the MirrorEdgesIds
+            MirrorEdgeId = MirrorEdgesIds.pop()
+            if MirrorEdgeId != None: # Set the mirror's mirror
+                Edges[MirrorEdgeId][3] = EdgeId
+
+            Edge = [EdgeId, StartPointId, EndPointId, MirrorEdgeId, NextEdgeId, PreviousEdgeId, PolygonId]
+            Points[StartPointId][2].append(EdgeId)
+            Edges.append(Edge)
+            LocalEdgesIds.append(EdgeId)
+
+        return LocalEdgesIds
+
+    def addPolygon(PointIdList, MirrorEdgesIds):
+        PolygonId = len(Faces)
+        EdgeIdList = addEdges(PointIdList, MirrorEdgesIds, PolygonId)
+        Polygon = (PolygonId, EdgeIdList, PointIdList)
+        Faces.append(Polygon)
+        return Polygon
+
+    CurrentPolygonIndex = 1
+    MaxReachedPolygonIndex = 1
+    Hull.append(StartPointIndex)
+
+    # Mirrorless Edges
+    MirrorlessExternalEdgesIds = []
+    MirrorlessInternalEdgesIds = [None] # So the pop in the first triangle does not fail, this would be the first edge in the hull, that still does not exist
+
+    while True:
+        CurrentPoint = Points[CurrentPolygonIndex]
+
+        if CurrentPolygonIndex > MaxReachedPolygonIndex and CurrentPolygonIndex < PolygonSize: # New "in" triangle (avoid last duplicated start)
+            MaxReachedPolygonIndex = CurrentPolygonIndex
+
+            # Given enough points (Start, Previous and Current), This point
+            # creates a triangle, and manage the MirrorEdgesIds
+            MirrorlessInternalEdgesIds.append(None)
+            MirrorlessInternalEdgesIds.append(None)
+            Polygon = addPolygon([CurrentPolygonIndex, StartPointIndex, CurrentPolygonIndex-1], MirrorlessInternalEdgesIds) # Point order is important to match mirrors
+            NewEdgesIds = Polygon[1]
+            MirrorlessExternalEdgesIds.append(NewEdgesIds[0]) # One for each None pushed
+            MirrorlessInternalEdgesIds.append(NewEdgesIds[1]) # One for each None pushed
+
+        if len(Hull) >= 2 and sarea(Points[Hull[-2]][1], Points[Hull[-1]][1], CurrentPoint[1]) > 0: # sarea works with coordinates
+            RemovedHullPointIndex = Hull.pop()
+
+            # Add "outer" triangle with the removed hull point, and manage the
+            # MirrorEdgesIds, again, point order is important to match mirrors
+            # stacks
+            MirrorlessExternalEdgesIds.append(None)
+            Polygon = addPolygon([CurrentPolygonIndex, RemovedHullPointIndex, Hull[-1]], MirrorlessExternalEdgesIds)
+            NewEdgesIds = Polygon[1]
+            MirrorlessExternalEdgesIds.append(NewEdgesIds[0]) # One for each None pushed
+
+            CurrentPolygonIndex -= 1
+        elif CurrentPolygonIndex == PolygonSize: # Current point is last start and the Hull is finished
+            break
+        else:
+            Hull.append(CurrentPolygonIndex)
+
+        CurrentPolygonIndex += 1
+
+    Points.pop() # Remove duplicated start
+
+    # Create the mirrors of the Hull (in reverse direction)
+    MirrorlessExternalEdgesIds.append(MirrorlessInternalEdgesIds.pop()) # Last 'internal' edge is external
+    # Add the first edge in the hull, it exists now (this triangulation gives it
+    # always the id 2, last index of the first polygon generated)
+    MirrorlessExternalEdgesIds.insert(0, 2)
+    Hull.reverse()
+    HullEdgesIds = addEdges(Hull, MirrorlessExternalEdgesIds, None)
+
+    return (Points, HullEdgesIds, Edges, Faces)
 
