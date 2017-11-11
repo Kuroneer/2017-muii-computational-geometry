@@ -256,7 +256,8 @@ def graham_triangulation_dcel(PointsCoordinates):
 
 
     #######################
-    # Create return structures
+    # Create return structures # TODO use OOO and leave lists out
+    # TODO use references instead of so many ids
     Points = [] # Point = (id, coord, edge id list that start from this point)
     Hull = [] # List of Point Ids
     Edges = [] # (id, start point id, end point id, mirror edge id, next edge id, previous edge id, face id that includes it)
@@ -313,7 +314,7 @@ def graham_triangulation_dcel(PointsCoordinates):
     def addPolygon(PointIdList, MirrorEdgesIds):
         PolygonId = len(Faces)
         EdgeIdList = addEdges(PointIdList, MirrorEdgesIds, PolygonId)
-        Polygon = (PolygonId, EdgeIdList, PointIdList)
+        Polygon = [PolygonId, EdgeIdList, PointIdList]
         Faces.append(Polygon)
         return Polygon
 
@@ -362,6 +363,7 @@ def graham_triangulation_dcel(PointsCoordinates):
     Points.pop() # Remove duplicated start
 
     # Create the mirrors of the Hull (in reverse direction)
+    # TODO: Change addEdges with direction to avoid two O(size of hull)
     MirrorlessExternalEdgesIds.append(MirrorlessInternalEdgesIds.pop()) # Last 'internal' edge is external
     # Add the first edge in the hull, it exists now (this triangulation gives it
     # always the id 2, last index of the first polygon generated)
@@ -370,4 +372,94 @@ def graham_triangulation_dcel(PointsCoordinates):
     HullEdgesIds = addEdges(Hull, MirrorlessExternalEdgesIds, None)
 
     return (Points, HullEdgesIds, Edges, Faces)
+
+
+def improve_triangulation(DCEL, StopAtFirst = False):
+    Points = DCEL[0]
+    Edges = DCEL[2]
+    Faces = DCEL[3]
+
+    def coordinates(PointId):
+        return Points[PointId][1]
+
+    Improved = False
+    # (id, start point id, end point id, mirror edge id, next edge id, previous edge id, face id that includes it)
+    for Edge in Edges:
+        EdgeId = Edge[0]
+        MirrorEdgeId = Edge[3]
+        Mirror = Edges[MirrorEdgeId]
+        if Edge[6] == None or Mirror[6] == None: # Edge or Mirror in hull
+            continue
+
+        TriangleVertexPointId = Edges[Edge[4]][2] # End Point id of the next edge
+        CandidatePointId = Edges[Mirror[4]][2] # End PointId of the mirror's next edge (triangle vertex point of the mirror)
+        EdgeStartPointId = Edge[1]
+        EdgeEndPointId = Edge[2]
+
+        # If is convex and point inside triangle's circumference, flip the edge
+        TriangleVertexPointCoordinates = coordinates(TriangleVertexPointId)
+        CandidatePointCoordinates = coordinates(CandidatePointId)
+        EdgeStartCoordinates = coordinates(EdgeStartPointId)
+        EdgeEndCoordinates = coordinates(EdgeEndPointId)
+
+        Sarea1 = sarea(TriangleVertexPointCoordinates, EdgeStartCoordinates, CandidatePointCoordinates)
+        Sarea2 = sarea(CandidatePointCoordinates, EdgeEndCoordinates, TriangleVertexPointCoordinates)
+
+        if (Sarea1 < 0) and (Sarea2 < 0) and (inCircle(TriangleVertexPointCoordinates, EdgeStartCoordinates, EdgeEndCoordinates, CandidatePointCoordinates) > 0):
+            # Flip it!
+
+            # Set points
+            Points[EdgeStartPointId][2].remove(EdgeId)
+            Points[EdgeEndPointId][2].remove(MirrorEdgeId)
+
+            Edge[1] = CandidatePointId
+            Edge[2] = TriangleVertexPointId
+            Mirror[1] = TriangleVertexPointId
+            Mirror[2] = CandidatePointId
+
+            Points[CandidatePointId][2].append(EdgeId)
+            Points[TriangleVertexPointId][2].append(MirrorEdgeId)
+
+            # Set next & previous
+            EdgeOriginalNext = Edge[4]
+            Edge[4] = Edge[5]
+            Edge[5] = Mirror[4]
+            Mirror[4] = Mirror[5]
+            Mirror[5] = EdgeOriginalNext
+
+            MirrorPrevious = Edges[Mirror[5]]
+            MirrorNext = Edges[Mirror[4]]
+            EdgePrevious = Edges[Edge[5]]
+            EdgeNext = Edges[Edge[4]]
+
+            MirrorPrevious[4] = MirrorEdgeId
+            EdgePrevious[4] = EdgeId
+            MirrorNext[5] = MirrorEdgeId
+            EdgeNext[5] = EdgeId
+            MirrorPrevious[5] = Mirror[4]
+            EdgePrevious[5] = Edge[4]
+            MirrorNext[4] = Mirror[5]
+            EdgeNext[4] = Edge[5]
+
+            # Set face changes
+            MirrorPrevious[6] = Mirror[6]
+            EdgePrevious[6] = Edge[6]
+
+            FaceEdge = Faces[Edge[6]]
+            FaceEdge[1] = [Edge[5], EdgeId, Edge[4]]
+            FaceEdge[2] = [CandidatePointId, TriangleVertexPointId, EdgeStartPointId]
+            FaceMirror = Faces[Mirror[6]]
+            FaceMirror[1] = [Mirror[5], MirrorEdgeId, Mirror[4]]
+            FaceMirror[2] = [TriangleVertexPointId, CandidatePointId, EdgeEndPointId]
+
+            Improved = True
+            if StopAtFirst:
+                return Improved
+
+    return Improved
+
+
+
+
+
 
