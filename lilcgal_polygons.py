@@ -375,6 +375,9 @@ def graham_triangulation_dcel(PointsCoordinates):
 
 
 def improve_triangulation(DCEL, StopAtFirst = False):
+    # TODO use a stack of edges: At the start, every edge is on it and they keep
+    # getting removed once they have been checked, and if there's a flip, all
+    # affected edges are put again in the stack
     Points = DCEL[0]
     Edges = DCEL[2]
     Faces = DCEL[3]
