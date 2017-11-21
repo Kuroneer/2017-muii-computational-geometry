@@ -90,6 +90,20 @@ def print_dcel(DCEL, Context = [], DrawArrows = False, SavePNG = True):
         save(G,Name,aspect_ratio=True)
         print(Name)
 
+def print_voronoi(DCEL):
+    Points = DCEL[0]
+
+    PointsCoordinatesList = list(map(lambda Point : Point[1], Points))
+    G = point(PointsCoordinatesList, color='red',  size = 10, zorder = 10)
+
+    InternalVoronoiPolygons = internal_voronoi_polygons(DCEL)
+    for Polygon in InternalVoronoiPolygons:
+        G += polygon(Polygon, rgbcolor = (0, random(), random()), zorder = 0)
+
+    Name = '/tmp/domvoronoi.png'
+    save(G,Name,aspect_ratio=True)
+    print(Name)
+
 num = 30
 def main():
     L = []
@@ -101,11 +115,13 @@ def main():
     print_dcel(DCEL)
 
     print("Improving DCEL")
-    while improve_triangulation(DCEL, True):
-        print_dcel(DCEL)
+    while improve_triangulation(DCEL, False):
+        print_dcel(DCEL, SavePNG = False)
 
     print("Improved")
     print_dcel(DCEL)
+
+    print_voronoi(DCEL)
 
 if __name__ == "__main__":
     main()

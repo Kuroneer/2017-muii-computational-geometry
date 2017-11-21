@@ -462,7 +462,41 @@ def improve_triangulation(DCEL, StopAtFirst = False):
     return Improved
 
 
+def internal_voronoi_polygons(DCEL):
+    Points = DCEL[0]
+    Edges = DCEL[2]
+    Faces = DCEL[3]
 
+    FaceCircumcenters = {}
+    for Face in Faces:
+        PolygonCoordinates = list(map(lambda PointId : Points[PointId][1], Face[2]))
+        print(PolygonCoordinates)
+        Circumcenter = circumcenter(PolygonCoordinates[0], PolygonCoordinates[1], PolygonCoordinates[2])
+        FaceCircumcenters[Face[0]] = Circumcenter
 
+    InternalVoronoiPolygons = []
+    for Point in Points:
+        VoronoiRegionCoordinates = []
+
+        # If Point is in Hull, at least one of the edges is going to have a
+        # "None" polygon
+        PointInHull = False
+        FirstEdgeId = Point[2][0]
+        CurrentEdgeId = FirstEdgeId
+
+        while True:
+            PolygonId = Edges[CurrentEdgeId][6]
+            if PolygonId == None:
+                PointInHull = True
+                break
+            VoronoiRegionCoordinates.append(FaceCircumcenters[PolygonId])
+            CurrentEdgeId = Edges[Edges[CurrentEdgeId][3]][4] # Next of mirror
+            if CurrentEdgeId == FirstEdgeId:
+                break
+
+        if not PointInHull:
+            InternalVoronoiPolygons.append(VoronoiRegionCoordinates)
+
+    return InternalVoronoiPolygons
 
 
