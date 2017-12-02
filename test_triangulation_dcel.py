@@ -7,7 +7,7 @@ from sage.all import *
 from random import randint, random
 import time
 
-
+num = 30
 def print_dcel(DCEL, Context = [], DrawArrows = False, SavePNG = True):
     Points = DCEL[0]
     Hull = DCEL[1]
@@ -87,7 +87,7 @@ def print_dcel(DCEL, Context = [], DrawArrows = False, SavePNG = True):
 
     if SavePNG:
         Name = '/tmp/dom{0:03d}.png'.format(Iteration)
-        save(G,Name,aspect_ratio=True)
+        save(G,Name,aspect_ratio=True, xmin=-1, ymin=-1, xmax = num+1, ymax = num+1)
         print(Name)
 
 def print_voronoi(DCEL):
@@ -96,15 +96,14 @@ def print_voronoi(DCEL):
     PointsCoordinatesList = list(map(lambda Point : Point[1], Points))
     G = point(PointsCoordinatesList, color='red',  size = 10, zorder = 10)
 
-    InternalVoronoiPolygons = internal_voronoi_polygons(DCEL)
-    for Polygon in InternalVoronoiPolygons:
+    VoronoiPolygons = voronoi_polygons(DCEL)
+    for Polygon in VoronoiPolygons:
         G += polygon(Polygon, rgbcolor = (0, random(), random()), zorder = 0)
 
     Name = '/tmp/domvoronoi.png'
-    save(G,Name,aspect_ratio=True)
+    save(G,Name,aspect_ratio=True, xmin=-1, ymin=-1, xmax = num+1, ymax = num+1)
     print(Name)
 
-num = 30
 def main():
     L = []
     for i in xrange(0,num):

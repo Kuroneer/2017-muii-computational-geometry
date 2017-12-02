@@ -462,8 +462,9 @@ def improve_triangulation(DCEL, StopAtFirst = False):
     return Improved
 
 
-def internal_voronoi_polygons(DCEL):
+def voronoi_polygons(DCEL):
     Points = DCEL[0]
+    HullEdgesIds = DCEL[1]
     Edges = DCEL[2]
     Faces = DCEL[3]
 
@@ -474,29 +475,42 @@ def internal_voronoi_polygons(DCEL):
         Circumcenter = circumcenter(PolygonCoordinates[0], PolygonCoordinates[1], PolygonCoordinates[2])
         FaceCircumcenters[Face[0]] = Circumcenter
 
-    InternalVoronoiPolygons = []
+    HullEdgePseudoCircumcenters = {}
+    for HullEdgeId in HullEdgesIds:
+        Edge = Edges[HullEdgeId] # this edge goes in "reverse" order
+        StartPointCoordinates = Points[Edge[1]][1]
+        EndPointCoordinates = Points[Edge[2]][1]
+        Vector = diff(EndPointCoordinates, StartPointCoordinates)
+        VectorLength = dist(StartPointCoordinates, EndPointCoordinates)
+        Perpendicular = perpendicular(Vector)
+        Perpendicular100U = [100 * Perpendicular[0] / VectorLength, 100 * Perpendicular[1] / VectorLength]
+        MidPoint = midPoint(StartPointCoordinates, EndPointCoordinates)
+        PseudoCircumcenter = sumV(MidPoint, Perpendicular100U)
+        HullEdgePseudoCircumcenters[HullEdgeId] = PseudoCircumcenter
+
+    VoronoiPolygons = []
     for Point in Points:
         VoronoiRegionCoordinates = []
 
         # If Point is in Hull, at least one of the edges is going to have a
         # "None" polygon
-        PointInHull = False
         FirstEdgeId = Point[2][0]
         CurrentEdgeId = FirstEdgeId
 
         while True:
             PolygonId = Edges[CurrentEdgeId][6]
-            if PolygonId == None:
-                PointInHull = True
-                break
-            VoronoiRegionCoordinates.append(FaceCircumcenters[PolygonId])
+            if PolygonId != None:
+                VoronoiRegionCoordinates.append(FaceCircumcenters[PolygonId])
+            else:
+                VoronoiRegionCoordinates.append(HullEdgePseudoCircumcenters[Edges[CurrentEdgeId][5]])
+                VoronoiRegionCoordinates.append(HullEdgePseudoCircumcenters[CurrentEdgeId])
+
             CurrentEdgeId = Edges[Edges[CurrentEdgeId][3]][4] # Next of mirror
             if CurrentEdgeId == FirstEdgeId:
                 break
 
-        if not PointInHull:
-            InternalVoronoiPolygons.append(VoronoiRegionCoordinates)
+        VoronoiPolygons.append(VoronoiRegionCoordinates)
 
-    return InternalVoronoiPolygons
+    return VoronoiPolygons
 
 
